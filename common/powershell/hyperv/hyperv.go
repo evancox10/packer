@@ -53,6 +53,24 @@ $ip
 	return cmdOut, err
 }
 
+
+//func CreateVirtualHardDiskDrive(vmName string, diskPath string, diskSize int64, diskBlockSize int64, generation uint) (uint, uint, error) {
+//
+//		var script = `
+//param([string]$vmName, [string]$path, 
+//
+//
+//[long]$memoryStartupBytes, [long]$newVHDSizeBytes, [string]$switchName, [int]$generation)
+//$vhdx = $vmName + '.vhdx'
+//$vhdPath = Join-Path -Path $path -ChildPath $vhdx
+//New-VM -Name $vmName -Path $path -MemoryStartupBytes $memoryStartupBytes -NewVHDPath $vhdPath -NewVHDSizeBytes $newVHDSizeBytes -SwitchName $switchName -Generation $generation
+//`
+//		var ps powershell.PowerShellCmd
+//		err := ps.Run(script, vmName, path, strconv.FormatInt(ram, 10), strconv.FormatInt(diskSize, 10), switchName, strconv.FormatInt(int64(generation), 10))
+//		return err
+//}
+
+
 func CreateDvdDrive(vmName string, isoPath string, generation uint) (uint, uint, error) {
 	var ps powershell.PowerShellCmd
 	var script string
@@ -187,27 +205,29 @@ Set-VMFloppyDiskDrive -VMName $vmName -Path $null
 	return err
 }
 
-func CreateVirtualMachine(vmName string, path string, ram int64, diskSize int64, switchName string, generation uint) error {
+func CreateVirtualMachine(vmName string, path string, ram int64, diskSize int64, diskBlockSize int64, switchName string, generation uint) error {
 
 	if generation == 2 {
 		var script = `
-param([string]$vmName, [string]$path, [long]$memoryStartupBytes, [long]$newVHDSizeBytes, [string]$switchName, [int]$generation)
-$vhdx = $vmName + '.vhdx'
-$vhdPath = Join-Path -Path $path -ChildPath $vhdx
-New-VM -Name $vmName -Path $path -MemoryStartupBytes $memoryStartupBytes -NewVHDPath $vhdPath -NewVHDSizeBytes $newVHDSizeBytes -SwitchName $switchName -Generation $generation
+param([string]$vmName, [string]$path, [long]$memoryStartupBytes, [long]$vhdSizeBytes, [long]$vhdBlockSizeBytes, [string]$switchName, [int]$generation)
+$vhdName = $vmName + '.vhdx'
+$vhdPath = Join-Path -Path $path -ChildPath $vhdName
+$vhd = New-VHD -path $vhdPath -SizeBytes $vhdSizeBytes -BlockSizeBytes $vhdBlockSizeBytes
+New-VM -Name $vmName -Path $path -MemoryStartupBytes $memoryStartupBytes -VHDPath $vhdPath -SwitchName $switchName -Generation $generation
 `
 		var ps powershell.PowerShellCmd
-		err := ps.Run(script, vmName, path, strconv.FormatInt(ram, 10), strconv.FormatInt(diskSize, 10), switchName, strconv.FormatInt(int64(generation), 10))
+		err := ps.Run(script, vmName, path, strconv.FormatInt(ram, 10), strconv.FormatInt(diskSize, 10), strconv.FormatInt(diskBlockSize, 10), switchName, strconv.FormatInt(int64(generation), 10))
 		return err
 	} else {
 		var script = `
-param([string]$vmName, [string]$path, [long]$memoryStartupBytes, [long]$newVHDSizeBytes, [string]$switchName)
-$vhdx = $vmName + '.vhdx'
-$vhdPath = Join-Path -Path $path -ChildPath $vhdx
-New-VM -Name $vmName -Path $path -MemoryStartupBytes $memoryStartupBytes -NewVHDPath $vhdPath -NewVHDSizeBytes $newVHDSizeBytes -SwitchName $switchName
+param([string]$vmName, [string]$path, [long]$memoryStartupBytes, [long]$vhdSizeBytes, [long]$vhdBlockSizeBytes, [string]$switchName)
+$vhdName = $vmName + '.vhdx'
+$vhdPath = Join-Path -Path $path -ChildPath $vhdName
+$vhd = New-VHD -path $vhdPath -SizeBytes $vhdSizeBytes -BlockSizeBytes $vhdBlockSizeBytes
+New-VM -Name $vmName -Path $path -MemoryStartupBytes $memoryStartupBytes -VHDPath $vhdPath -SwitchName $switchName
 `
 		var ps powershell.PowerShellCmd
-		err := ps.Run(script, vmName, path, strconv.FormatInt(ram, 10), strconv.FormatInt(diskSize, 10), switchName)
+		err := ps.Run(script, vmName, path, strconv.FormatInt(ram, 10), strconv.FormatInt(diskSize, 10),  strconv.FormatInt(diskBlockSize, 10), switchName)
 
 		if err != nil {
 			return err

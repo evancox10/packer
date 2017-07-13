@@ -16,6 +16,7 @@ type StepCreateVM struct {
 	SwitchName                     string
 	RamSize                        uint
 	DiskSize                       uint
+	DiskBlockSize                  uint
 	Generation                     uint
 	Cpu                            uint
 	EnableMacSpoofing              bool
@@ -34,8 +35,9 @@ func (s *StepCreateVM) Run(state multistep.StateBag) multistep.StepAction {
 	// convert the MB to bytes
 	ramSize := int64(s.RamSize * 1024 * 1024)
 	diskSize := int64(s.DiskSize * 1024 * 1024)
+	diskBlockSize := int64(s.DiskBlockSize * 1024 * 1024)
 
-	err := driver.CreateVirtualMachine(s.VMName, path, ramSize, diskSize, s.SwitchName, s.Generation)
+	err := driver.CreateVirtualMachine(s.VMName, path, ramSize, diskSize, diskBlockSize, s.SwitchName, s.Generation)
 	if err != nil {
 		err := fmt.Errorf("Error creating virtual machine: %s", err)
 		state.Put("error", err)
@@ -111,4 +113,6 @@ func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 	if err != nil {
 		ui.Error(fmt.Sprintf("Error deleting virtual machine: %s", err))
 	}
+
+	// TODO: Clean up created VHDX
 }
